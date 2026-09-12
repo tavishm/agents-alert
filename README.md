@@ -1,4 +1,4 @@
-# agents-alert
+   (a real phone call plays the audio), or falls back to the ntfy built-in sounds.# agents-alert
 
 Urgent alert channel for AI agents to reach the phone on call.
 
@@ -21,9 +21,9 @@ Then test:
 
 1. Install the **ntfy** app ([Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy) / [iOS](https://apps.apple.com/us/app/ntfy/id1625396347)).
 2. Add subscription to topic `the-x20-agents`.
-3. In the subscription settings, set **Notification priority = Max** and, on Android,
-   pick **Sound = podcast.mp3** (download it from any alert) or set the app default
-   notification sound to the custom file. On iOS, allow critical alerts if prompted.
+3. In the subscription settings, set **Notification priority = Max**. On Android,
+   pick **Sound = podcast.mp3** (download it from any alert). iOS cannot use custom
+   sound files in notifications; on iPhone the siren arrives via the **call** tier
 
 ## Sending alerts
 
