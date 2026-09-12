@@ -9,9 +9,11 @@ Two tiers:
 - **call** (optional): true outbound phone call via Twilio that plays the siren audio
   out loud, then speaks the message.
 
-## Install (any machine)
+## Install (approved machines only: real, big, h2o)
 
-    curl -fsSL https://raw.githubusercontent.com/tavishm/agents-alert/master/install.sh | bash
+Pick a private topic name and keep it out of public repos:
+
+    ALERT_TOPIC=<private-topic> curl -fsSL https://raw.githubusercontent.com/tavishm/agents-alert/master/install.sh | bash
 
 Then test:
 
@@ -20,7 +22,7 @@ Then test:
 ## Phone setup (one time)
 
 1. Install the **ntfy** app ([Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy) / [iOS](https://apps.apple.com/us/app/ntfy/id1625396347)).
-2. Add subscription to topic `the-x20-agents`.
+2. Add subscription to your **private topic** (set via `ALERT_TOPIC` at install; never publish it).
 3. In the subscription settings, set **Notification priority = Max**. On Android,
    pick **Sound = podcast.mp3** (download it from any alert). iOS cannot use custom
    sound files in notifications; on iPhone the siren arrives via the **call** tier
