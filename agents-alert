@@ -39,9 +39,10 @@ cmd_call() {
     exit 2
   fi
   local say safe twiml
+  local audio="${ALERT_AUDIO_URL:-https://raw.githubusercontent.com/tavishm/agents-alert/master/audio/agents-alert-guy.mp3}"
   safe="$(printf '%s' "$msg" | sed -e 's/&/and/g' -e 's/</(/g' -e 's/>/)/g' -e 's/"//g')"
   say="This is an urgent alert from your agents. $safe. Please check your agents now."
-  twiml="<Response><Play>https://ntfy.sh/file/$NTFY_TOPIC/podcast.mp3</Play><Say voice=\"Polly.Joanna\" rate=\"+20%\">$say</Say><Play>https://ntfy.sh/file/$NTFY_TOPIC/podcast.mp3</Play><Say voice=\"Polly.Joanna\">This is an urgent alert from your agents.</Say><Hangup/></Response>"
+  twiml="<Response><Play>$audio</Play><Say voice=\"Polly.Joanna\" rate=\"+20%\">$say</Say><Play>$audio</Play><Say voice=\"Polly.Joanna\">This is an urgent alert from your agents.</Say><Hangup/></Response>"
   curl -sS -X POST "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Calls.json" \
     -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" \
     -d "To=$ALERT_PHONE" \
@@ -50,7 +51,9 @@ cmd_call() {
 }
 
 cmd_setup() {
-  load_conf
+  local topic="${1:-$DEFAULT_TOPIC}"
+  NTFY_TOPIC="$topic"
+  NTFY_URL="https://ntfy.sh/$NTFY_TOPIC"
   mkdir -p "$(dirname "$CONF_FILE")"
   {
     echo "NTFY_TOPIC=\"$NTFY_TOPIC\""
@@ -64,6 +67,6 @@ case "${1:-help}" in
   push)  shift; cmd_push "${1:-}" ;;
   call)  shift; cmd_call "${1:-}" ;;
   test)  cmd_push "Test alert: if you can hear the siren, the channel works." ;;
-  setup) cmd_setup ;;
-  *) echo "usage: agents-alert {push|call|test|setup} [message]" ;;
+  setup) shift; cmd_setup "${1:-}" ;;
+  *) echo "usage: agents-alert {push|call|test|setup} [message|topic]" ;;
 esac
