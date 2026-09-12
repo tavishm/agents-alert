@@ -8,14 +8,15 @@
 set -euo pipefail
 
 CONF_FILE="${ALERT_CONF:-$HOME/.config/agents-alert.conf}"
-DEFAULT_TOPIC="the-x20-agents"
+DEFAULT_TOPIC=""
 
 load_conf() {
   if [ -f "$CONF_FILE" ]; then
     # shellcheck disable=SC1090
     . "$CONF_FILE"
   fi
-  NTFY_TOPIC="${NTFY_TOPIC:-$DEFAULT_TOPIC}"
+  NTFY_TOPIC="${NTFY_TOPIC:-}"
+  if [ -z "$NTFY_TOPIC" ]; then echo "error: no topic configured; run agents-alert setup <private-topic>" >&2; exit 2; fi
   NTFY_URL="${NTFY_URL:-https://ntfy.sh/$NTFY_TOPIC}"
 }
 
