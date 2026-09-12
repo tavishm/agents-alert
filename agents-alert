@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# agents-alert - send an urgent phone alert to Tavish from any agent, any machine.
+# Usage:
+#   agents-alert push  "message"   # urgent push notification with siren+voice sound
+#   agents-alert call  "message"   # true phone call (needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM, ALERT_PHONE)
+#   agents-alert test              # send a test push
+#   agents-alert setup             # write local config (ntfy topic)
+set -euo pipefail
+
+CONF_FILE="${ALERT_CONF:-$HOME/.config/agents-alert.conf}"
+DEFAULT_TOPIC="the-x20-agents"
+
+load_conf() {
+  if [ -f "$CONF_FILE" ]; then
+    # shellcheck disable=SC1090
+    . "$CONF_FILE"
+  fi
+  NTFY_TOPIC="${NTFY_TOPIC:-$DEFAULT_TOPIC}"
+  NTFY_URL="${NTFY_URL:-https://ntfy.sh/$NTFY_TOPIC}"
+}
+
+cmd_push() {
+  local msg="${1:-Agents need you.}"
+  load_conf
+  curl -sS -o /dev/null -w "%{http_code}" \
+    -H "Priority: max" \
+    -H "Tags: siren,rotating_light" \
+    -H "Title: AGENTS NEED YOU" \
+    -H "Actions: view, Open alerts, https://ntfy.sh/$NTFY_TOPIC, clear=true" \
+    -d "$msg" \
+    "$NTFY_URL"
+}
+
+cmd_call() {
+  local msg="${1:-Agents need you.}"
+  load_conf
+  if [ -z "${TWILIO_ACCOUNT_SID:-}" ] || [ -z "${TWILIO_AUTH_TOKEN:-}" ] || [ -z "${TWILIO_FROM:-}" ] || [ -z "${ALERT_PHONE:-}" ]; then
+    echo "call: missing TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM / ALERT_PHONE" >&2
+    exit 2
+  fi
+  local say safe twiml
+  safe="$(printf '%s' "$msg" | sed -e 's/&/and/g' -e 's/</(/g' -e 's/>/)/g' -e 's/"//g')"
+  say="This is an urgent alert from your agents. $safe. Please check your agents now."
+  twiml="<Response><Play>https://ntfy.sh/file/$NTFY_TOPIC/podcast.mp3</Play><Say voice=\"Polly.Joanna\" rate=\"+20%\">$say</Say><Play>https://ntfy.sh/file/$NTFY_TOPIC/podcast.mp3</Play><Say voice=\"Polly.Joanna\">This is an urgent alert from your agents.</Say><Hangup/></Response>"
+  curl -sS -X POST "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Calls.json" \
+    -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" \
+    -d "To=$ALERT_PHONE" \
+    -d "From=$TWILIO_FROM" \
+    --data-urlencode "Twiml=$twiml"
+}
+
+cmd_setup() {
+  load_conf
+  mkdir -p "$(dirname "$CONF_FILE")"
+  {
+    echo "NTFY_TOPIC=\"$NTFY_TOPIC\""
+    echo "NTFY_URL=\"$NTFY_URL\""
+  } > "$CONF_FILE"
+  chmod 600 "$CONF_FILE"
+  echo "wrote $CONF_FILE"
+}
+
+case "${1:-help}" in
+  push)  shift; cmd_push "${1:-}" ;;
+  call)  shift; cmd_call "${1:-}" ;;
+  test)  cmd_push "Test alert: if you can hear the siren, the channel works." ;;
+  setup) cmd_setup ;;
+  *) echo "usage: agents-alert {push|call|test|setup} [message]" ;;
+esac
